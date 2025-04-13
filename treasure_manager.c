@@ -150,9 +150,47 @@ void view(char hunt_id[], int treasure_id) {
     fclose(f);
 }
 
+void remove_treasure (char hunt_id[], int treasure_id){
+    FILE* f = fopen(hunt_id, "r");
+    FILE *temp = fopen("temp.txt", "w");
+    if (!f || !temp) {
+        perror("Error opening file");
+        return;
+    }
+
+    char line[512];
+    int found = 0;
+    int current_id;
+
+    if (fgets(line, sizeof(line), f)) {
+        fputs(line, temp);
+    }
+
+    while (fgets(line, sizeof(line), f)) {
+        if (sscanf(line, "%d", &current_id) == 1) {
+            if (current_id == treasure_id) {
+                found = 1;
+                continue;  
+            }
+        }
+        fputs(line, temp);
+    }
+
+    fclose(f);
+    fclose(temp);
+
+    if (found) {
+        remove(hunt_id);
+        rename("temp.txt", hunt_id);
+        printf("All treasures with ID %d removed.\n", treasure_id);
+    } else {
+        remove("temp.txt");
+        printf("No treasures with ID %d found.\n", treasure_id);
+    }
+}
 
 int main(int argc, char* argv[]) {
-    if (argc != 3 && argc != 4) {                        //  ./f     dir    func    id
+    if (argc != 3 && argc != 4) {                        //  ./f    func    dir   id
         printf("Usage: ./treasure_manager <command> [args...]\n");
         return 1;
     }
@@ -161,19 +199,23 @@ int main(int argc, char* argv[]) {
     char file[200];
     char logged[200];
 
-    mkdir(hunt_id, 0777);   
+    mkdir(hunt_id);   
     snprintf(file, sizeof(file), "%s/file.txt", hunt_id);
     snprintf(logged, sizeof(logged), "%s/logged_hunt.txt", hunt_id);
 
     if(strcmp(argv[2],"list")==0){
         list(file);
     }
-    if(strcmp(argv[2],"add")==0){
+    else if(strcmp(argv[2],"add")==0){
         add(file);
     }
-    if(strcmp(argv[2],"view")==0){
+    else if(strcmp(argv[2],"view")==0){
         int id=atoi(argv[3]);
         view(file,id);
+    }
+    else if(strcmp(argv[2],"remove_treasure")==0){
+        int id=atoi(argv[3]);
+        remove_treasure(file,id);
     }
 
     FILE* g = fopen(logged, "a");
@@ -181,7 +223,12 @@ int main(int argc, char* argv[]) {
         perror("Error opening file");
         return 1;
     }
-    fprintf(g,"Player used:%s\n",argv[2]);
+    if (argc == 4)
+        fprintf(g, "Command: %s | Hunt: %s | Treasure ID: %s\n", argv[1], argv[2], argv[3]);
+    else
+        fprintf(g, "Command: %s | Hunt: %s\n", argv[1], argv[2]);
+
+    fclose(g);
 
     return 0;
 }

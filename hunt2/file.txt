@@ -1,0 +1,6 @@
+Treasure ID     User name     GPS coordinates      Clue text   Value 
+6           relic_ruby       35.6895,139.6917      In the shadow of the tallest tower.        850
+7           coin_colin        37.7749,-122.4194     The clue lies beneath the bridge.          400
+8           cryptic_claire    41.9028,12.4964       Search the library's forgotten chamber.    1000
+9           explorer_ella     -33.8688,151.2093     Beneath the whispering statue.             550
+10          wanderer_will     55.7558,37.6173       Follow the song of the wind chimes.        700
