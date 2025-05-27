@@ -3,6 +3,8 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <dirent.h>
+#include "manager_utils.h"
 
 typedef struct {
     int id;
@@ -74,7 +76,7 @@ void list(char hunt_id[]){
         char gps[32];
         char clueWithValue[300];
         char* dotPos;
-
+        
         if (sscanf(line, "%d %s %[^ ] %[^\n]", &entry.id, entry.name, gps, clueWithValue) < 4) {
             printf("Malformed line: %s", line);
             continue;
@@ -150,6 +152,33 @@ void view(char hunt_id[], int treasure_id) {
     fclose(f);
 }
 
+void remove_hunt(char hunt_id[]) {
+    DIR *dir = opendir(hunt_id);
+    struct dirent *entry;
+    char file[512];
+
+    if (!dir) {
+        perror("opendir failed");
+        return;
+    }
+
+    while ((entry = readdir(dir)) != NULL) {
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0)
+            continue;
+
+        snprintf(file, sizeof(file), "%s/%s", hunt_id, entry->d_name);
+        if (remove(file) != 0)
+            perror("remove failed");
+    }
+
+    closedir(dir);
+
+    if (rmdir(hunt_id) != 0)
+        perror("rmdir failed");
+    else
+        printf("Hunt '%s' removed successfully.\n", hunt_id);
+}
+
 void remove_treasure (char hunt_id[], int treasure_id){
     FILE* f = fopen(hunt_id, "r");
     FILE *temp = fopen("temp.txt", "w");
@@ -217,6 +246,10 @@ int main(int argc, char* argv[]) {
         int id=atoi(argv[3]);
         remove_treasure(file,id);
     }
+    else if(strcmp(argv[2],"remove_hunt")==0){
+        remove_hunt(hunt_id);
+    }
+    
 
     FILE* g = fopen(logged, "a");
     if (!g) {
