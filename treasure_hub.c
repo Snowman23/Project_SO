@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -60,12 +59,13 @@ void monitor_loop(){
             char cmd[64], hunt[64];
             int id = -1;
             fscanf(f, "%s %s %d", cmd, hunt, &id);
+            fflush(f);
             fclose(f);
 
             if (isdigit(hunt[0])) {
                 char temp[128];
                 snprintf(temp, sizeof(temp), "hunt%s", hunt);
-                strncpy(hunt, temp, sizeof(hunt) - 1);
+                strncpy(hunt, temp, sizeof(hunt));
                 hunt[sizeof(hunt) - 1] = '\0';
             }
 
@@ -76,11 +76,26 @@ void monitor_loop(){
                 int count = count_treasures(path);
                 printf("Hunt: %s | Treasures: %d\n", hunt, count);
             }
+            else if (strcmp(cmd, "add_treasure") == 0){
+                char path[128];
+                snprintf(path, sizeof(path), "%s/file.txt", hunt);
+                add(path);
+            }
             else if (strcmp(cmd, "list_treasures") == 0){
                 list(path);
             }
             else if (strcmp(cmd, "view_treasure") == 0){
                 view(path, id);
+            }
+            else if (strcmp(cmd, "remove_hunt") == 0){
+                remove_hunt(hunt);
+            }
+            else if (strcmp(cmd, "remove_treasure") == 0){
+                char path[128];
+                snprintf(path, sizeof(path), "%s/file.txt", hunt);
+                remove_treasure(path, id);
+                printf("Treasure removed successfully.\n");
+                fflush(stdout);
             }
             else if (strcmp(cmd, "stop") == 0){
                 printf("Monitor: Shutting down after delay...\n");
@@ -125,6 +140,8 @@ void write_command_to_file(const char *command, const char *hunt, int id){
         return;
     }
     fprintf(f, "%s %s %d\n", command, hunt, id);
+    fflush(f);
+    fsync(fileno(f));  // ensure content is written to disk before signaling
     fclose(f);
 }
 
@@ -139,10 +156,10 @@ void read_monitor_output(){
 
 int main(){
     struct sigaction sa;
-    sa.sa_handler = handle_sigchld;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGCHLD, &sa, NULL);
+    sa.sa_handler = handle_sigchld; // Set handler function
+    sigemptyset(&sa.sa_mask);       // No additional signals blocked
+    sa.sa_flags = 0;                // No special flags
+    sigaction(SIGCHLD, &sa, NULL);  // Register the handler
 
     char input[100];
     char last_hunt[64];
@@ -157,6 +174,14 @@ int main(){
 
         if (strcmp(input, "start_monitor") == 0){
             start_monitor();
+        }
+        else if (strcmp(input, "add_treasure") == 0){
+            if (!monitor_running){ printf("Monitor not running.\n"); continue; }
+            printf("Enter hunt ID: ");
+            scanf("%s", last_hunt); getchar();
+            write_command_to_file("add_treasure", last_hunt, -1);
+            send_signal_to_monitor(SIGUSR1);
+            read_monitor_output();
         }
         else if (strcmp(input, "list_hunts") == 0){
             if (!monitor_running){ printf("Monitor not running.\n"); continue; }
@@ -183,6 +208,25 @@ int main(){
             write_command_to_file("view_treasure", last_hunt, last_id);
             send_signal_to_monitor(SIGTERM);
             read_monitor_output();
+        }
+        else if (strcmp(input, "remove_hunt") == 0){
+            if (!monitor_running){ printf("Monitor not running.\n"); continue; }
+            printf("Enter hunt ID: ");
+            scanf("%s", last_hunt); getchar();
+            write_command_to_file("remove_hunt", last_hunt, -1);
+            send_signal_to_monitor(SIGUSR2);
+            read_monitor_output();
+        }
+        else if (strcmp(input, "remove_treasure") == 0){
+            if (!monitor_running){ printf("Monitor not running.\n"); continue; }
+            printf("Enter hunt ID: ");
+            scanf("%s", last_hunt);
+            printf("Enter treasure ID to remove: ");
+            scanf("%d", &last_id); getchar();
+            write_command_to_file("remove_treasure", last_hunt, last_id);
+            send_signal_to_monitor(SIGTERM);
+            read_monitor_output();
+            fflush(stdout);
         }
         else if (strcmp(input, "calculate_score") == 0) {
             if (!monitor_running) {
@@ -273,101 +317,3 @@ int main(){
     }
     return 0;
 }
-=======
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <signal.h>
-#include <sys/types.h>
-#include <sys/wait.h>
-#include <string.h>
-
-pid_t monitor_pid = -1;
-
-void handle_signal(int sig) {
-    if (sig == SIGUSR1) {
-        printf("Received SIGUSR1 signal: Listing hunts...\n");
-        // This can be a place to list hunts
-    } else if (sig == SIGUSR2) {
-        printf("Received SIGUSR2 signal: Viewing treasure...\n");
-        // Handle treasure view here
-    }
-}
-
-void start_monitor() {
-    monitor_pid = fork();
-    if (monitor_pid == 0) {
-        // Child process - monitor logic
-        signal(SIGUSR1, handle_signal);
-        signal(SIGUSR2, handle_signal);
-        while (1) {
-            usleep(1000000);  // Simulate work, replace with actual logic
-        }
-    }
-}
-
-void stop_monitor() {
-    if (monitor_pid != -1) {
-        kill(monitor_pid, SIGTERM);  // Send termination signal to monitor
-        int status;
-        waitpid(monitor_pid, &status, 0);  // Wait for monitor process to finish
-        printf("Monitor process terminated with status: %d\n", status);
-    }
-}
-
-void list_hunts() {
-    if (monitor_pid != -1) {
-        kill(monitor_pid, SIGUSR1);  // Send signal to monitor to list hunts
-    }
-}
-
-void list_treasures() {
-    if (monitor_pid != -1) {
-        kill(monitor_pid, SIGUSR2);  // Send signal to monitor to list treasures
-    }
-}
-
-void view_treasure(int id) {
-    if (monitor_pid != -1) {
-        // In this case, let's assume we're sending an ID to the monitor
-        printf("Requesting to view treasure with ID: %d\n", id);
-        // Here you can send a specific signal or data to the monitor
-    }
-}
-
-int main() {
-    char command[256];
-    printf("Welcome to Treasure Hub!\n");
-
-    while (1) {
-        printf("\nEnter command: ");
-        fgets(command, sizeof(command), stdin);
-        command[strcspn(command, "\n")] = 0; // Remove newline at end
-
-        if (strcmp(command, "start_monitor") == 0) {
-            start_monitor();
-            printf("Monitor started.\n");
-        } else if (strcmp(command, "list_hunts") == 0) {
-            list_hunts();
-        } else if (strcmp(command, "list_treasures") == 0) {
-            list_treasures();
-        } else if (strncmp(command, "view_treasure", 13) == 0) {
-            int id = atoi(command + 14);  // Assuming the ID comes after the space
-            view_treasure(id);
-        } else if (strcmp(command, "stop_monitor") == 0) {
-            stop_monitor();
-        } else if (strcmp(command, "exit") == 0) {
-            if (monitor_pid != -1) {
-                printf("You must stop the monitor before exiting.\n");
-            } else {
-                printf("Exiting Treasure Hub.\n");
-                break;
-            }
-        } else {
-            printf("Invalid command.\n");
-        }
-    }
-
-    return 0;
-}
->>>>>>> 0155f70276aef4abf032b4039e56bb805c7b6c45
