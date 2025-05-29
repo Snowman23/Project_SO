@@ -1,6 +1,6 @@
-Treasure ID     User name     GPS coordinates      Clue text   Value 
-1   seeker_ash  34.0522,-118.2437       Under the oldest oak tree in the park.	500
-2   jungle_jane     -1.2921,36.8219             Look beneath the lion’s paw.	750
-3   pirate_pete     51.5074,-0.1278	    X marks the rooftop near the river.	900
-4   goldhunter_gus      40.7128,-74.0060	Hidden behind the dragon mural.	600
-5   pirate_pete     51.5074,-0.1278	    X marks the rooftop near the river.	100
+Treasure ID,,User name,,GPS coordinates,,Clue text,Value 
+1,seeker_ash,34.0522 -18.2437,Under the oldest oak tree in the park.,500
+2,jungle_jane,-1.2921 36.8219,Look beneath the lion’s paw.,750
+3,pirate_pete,51.5074 -3.1278,X marks the rooftop near the river.,900
+4,goldhunter_gus,40.7128 -74.0060,Hidden behind the dragon mural.,600
+5,pirate_pete,51.5074 -0.1278,X marks the rooftop near the river.,100
